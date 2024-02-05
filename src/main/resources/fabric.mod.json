@@ -4,25 +4,20 @@
   "version": "${version}",
 
   "name": "${name}",
-  "description": "Template for my fabric mods",
+  "description": "Add \"(Not Responding) to your game window title!\" ",
   "authors": [
     "Fallen_Breath"
   ],
   "contact": {
-    "homepage": "https://modrinth.com",
-    "sources": "https://github.com/Fallen-Breath/fabric-mod-template"
+    "sources": "https://github.com/ZhuRuoLing/not-responding"
   },
-
-  "icon": "assets/template_mod/icon.png",
-
-  "environment": "*",
+  "icon": "assets/not_responding/icon.png",
+  "environment": "client",
   "entrypoints": {
-    "main": [
-      "me.fallenbreath.template_mod.TemplateMod"
-    ]
+    "client": ["net.zhuruoling.notResponding.Mod"]
   },
   "mixins": [
-    "template_mod.mixins.json"
+    "not_responding.mixins.json"
   ],
 
   "depends": {

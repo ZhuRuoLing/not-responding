@@ -1,54 +1,176 @@
 plugins {
 	id 'maven-publish'
-	id 'com.github.hierynomus.license' version '0.16.1' apply false
-	id 'fabric-loom' version '1.4-SNAPSHOT' apply false
-
-	// https://github.com/ReplayMod/preprocessor
-	// https://github.com/Fallen-Breath/preprocessor
-	id 'com.replaymod.preprocess' version 'ce1aeb2b'
-
-	// https://github.com/Fallen-Breath/yamlang
-	id 'me.fallenbreath.yamlang' version '1.3.1' apply false
+	id 'com.github.hierynomus.license' version '0.16.1'
+	id 'fabric-loom' version '1.4-SNAPSHOT'
+	id 'me.fallenbreath.yamlang' version '1.3.1'
 }
 
-preprocess {
-	def mc114 = createNode('1.14.4', 1_14_04, '')
-	def mc115 = createNode('1.15.2', 1_15_02, '')
-	def mc116 = createNode('1.16.5', 1_16_05, '')
-	def mc117 = createNode('1.17.1', 1_17_01, '')
-	def mc118 = createNode('1.18.2', 1_18_02, '')
-	def mc119 = createNode('1.19.4', 1_19_04, '')
-	def mc120 = createNode('1.20.4', 1_20_04, '')
-
-	mc115.link(mc114, null)
-	mc115.link(mc116, null)
-	mc116.link(mc117, null)
-	mc117.link(mc118, null)
-	mc118.link(mc119, null)
-	mc119.link(mc120, null)
-}
-
-tasks.register('buildAndGather') {
-	subprojects {
-		dependsOn project.tasks.named('build').get()
+repositories {
+	maven {
+		url 'https://jitpack.io'
 	}
-	doFirst {
-		println 'Gathering builds'
-		def buildLibs = {
-			p -> p.buildDir.toPath().resolve('libs')
+	maven {
+		name = 'Fabric'
+		url = 'https://maven.fabricmc.net/'
+	}
+	maven {
+		url 'https://maven.fallenbreath.me/releases'
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+}
+
+String MIXIN_CONFIG_PATH = 'not_responding.mixins.json'
+String LANG_DIR = 'assets/not_responding/lang'
+
+loom {
+	runConfigs.configureEach {
+		// to make sure it generates all "Minecraft Client (:subproject_name)" applications
+		ideConfigGenerated = true
+		runDir '../../run'
+		vmArgs '-Dmixin.debug.export=true'
+	}
+}
+
+remapJar {
+	remapperIsolation = true
+}
+
+String versionSuffix = ''
+// detect github action environment variables
+// https://docs.github.com/en/actions/learn-github-actions/environment-variables#default-environment-variables
+if (System.getenv("BUILD_RELEASE") != "true") {
+	String buildNumber = System.getenv("BUILD_ID")
+	versionSuffix += buildNumber != null ? ('+build.' + buildNumber) : '-SNAPSHOT'
+}
+String fullModVersion = project.mod_version + versionSuffix
+
+group = project.maven_group
+if (System.getenv("JITPACK") == "true") {
+	// move mc version into archivesBaseName, so jitpack will be able to organize archives from multiple subprojects correctly
+	base.archivesName = project.archives_base_name + '-mc' + project.minecraft_version
+	version = 'v' + fullModVersion
+} else {
+	base.archivesName = project.archives_base_name
+	version = 'mc' + project.minecraft_version + '-v' + fullModVersion
+}
+
+// See https://youtrack.jetbrains.com/issue/IDEA-296490
+// if IDEA complains about "Cannot resolve resource filtering of MatchingCopyAction" and you want to know why
+processResources {
+	inputs.property "id", project.mod_id
+	inputs.property "name", project.mod_name
+	inputs.property "version", fullModVersion
+	inputs.property "minecraft_dependency", project.minecraft_dependency
+
+	filesMatching("fabric.mod.json") {
+		def valueMap = [
+				"id": project.mod_id,
+				"name": project.mod_name,
+				"version": fullModVersion,
+				"minecraft_dependency": project.minecraft_dependency,
+		]
+		expand valueMap
+	}
+
+	filesMatching(MIXIN_CONFIG_PATH) {
+		filter { s -> s.replace('{{COMPATIBILITY_LEVEL}}', "JAVA_${JAVA_COMPATIBILITY.ordinal() + 1}") }
+	}
+}
+
+// https://github.com/Fallen-Breath/yamlang
+yamlang {
+	targetSourceSets = [sourceSets.main]
+	inputDir = LANG_DIR
+}
+
+// ensure that the encoding is set to UTF-8, no matter what the system default is
+// this fixes some edge cases with special characters not displaying correctly
+// see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
+tasks.withType(JavaCompile).configureEach {
+	options.encoding = "UTF-8"
+	options.compilerArgs << "-Xlint:deprecation" << "-Xlint:unchecked"
+}
+
+java {
+	sourceCompatibility = 17
+	targetCompatibility = 17
+
+	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
+	// if it is present.
+	// If you remove this line, sources will not be generated.
+	withSourcesJar()
+}
+
+jar {
+	from(rootProject.file('LICENSE')) {
+		rename { "${it}_${project.archives_base_name}" }
+	}
+}
+
+// https://github.com/hierynomus/license-gradle-plugin
+license {
+	// use "gradle licenseFormat" to apply license headers
+	header = rootProject.file('HEADER.txt')
+	include '**/*.java'
+	skipExistingHeaders = true
+
+	headerDefinitions {
+		// ref: https://github.com/mathieucarbou/license-maven-plugin/blob/4c42374bb737378f5022a3a36849d5e23ac326ea/license-maven-plugin/src/main/java/com/mycila/maven/plugin/license/header/HeaderType.java#L48
+		// modification: add a newline at the end
+		SLASHSTAR_STYLE_NEWLINE {
+			firstLine = "/*"
+			beforeEachLine = " * "
+			endLine = " */" + System.lineSeparator()
+			afterEachLine = ""
+			skipLinePattern = null
+			firstLineDetectionPattern = "(\\s|\\t)*/\\*.*\$"
+			lastLineDetectionPattern = ".*\\*/(\\s|\\t)*\$"
+			allowBlankLines = false
+			isMultiline = true
+			padLines = false
 		}
-		delete fileTree(buildLibs(rootProject)) {
-			include '*'
+	}
+	mapping {
+		java = 'SLASHSTAR_STYLE_NEWLINE'
+	}
+	ext {
+		name = project.mod_name
+		author = 'ZhuRuoLing'
+		year = Calendar.getInstance().get(Calendar.YEAR).toString()
+	}
+}
+classes.dependsOn licenseFormatMain
+testClasses.dependsOn licenseFormatTest
+
+// configure the maven publication
+publishing {
+	publications {
+		mavenJava(MavenPublication) {
+			artifactId base.archivesName.get()
+
+			from components.java
 		}
-		subprojects {
-			copy {
-				from(buildLibs(project)) {
-					include '*.jar'
-					exclude '*-dev.jar', '*-sources.jar', '*-shadow.jar'
-				}
-				into buildLibs(rootProject)
-				duplicatesStrategy DuplicatesStrategy.INCLUDE
-			}
-		}
+	}
+
+	// select the repositories you want to publish to
+	repositories {
+		// mavenLocal()
+
+//		// [FEATURE] FALLENS_MAVEN
+//		maven {
+//			url = version.endsWith("SNAPSHOT") ? "https://maven.fallenbreath.me/snapshots" : "https://maven.fallenbreath.me/releases"
+//			credentials(PasswordCredentials) {
+//				username = 'fallen'
+//				password = System.getenv("FALLENS_MAVEN_TOKEN")
+//			}
+//			authentication {
+//				basic(BasicAuthentication)
+//			}
+//		}
 	}
 }
