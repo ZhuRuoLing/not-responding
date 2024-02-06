@@ -1,0 +1,4 @@
+not_responding:
+  title: "(未响应)"
+  option:
+    alpha: "白色遮罩透明度"

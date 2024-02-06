@@ -45,21 +45,21 @@ body:
         Please upload the log file as an attachment, or upload the log to [pastebin](https://pastebin.com/) / [mclo.gs](https://mclo.gs/) and paste the url here.
         Please refrain from pasting the entire log file directly.
         Leave empty if there is none.
-      placeholder: https://pastebin.com/J6b7lKxR 
+      placeholder: https://pastebin.com/somelinks
   - type: input
     id: minecraft-version
     attributes:
       label: Minecraft version
       description: The Minecraft version(s) where this bug occurs in.
-      placeholder: 1.15.2
+      placeholder: 1.20.4
     validations:
       required: true
   - type: input
     id: mod-version
     attributes:
-      label: TemplateMod version
-      description: The TemplateMod version(s) where this bug occurs in.
-      placeholder: 1.2.3
+      label: NotResponding version
+      description: The NotResponding version(s) where this bug occurs in.
+      placeholder: 1.0.0
     validations:
       required: true
   - type: textarea

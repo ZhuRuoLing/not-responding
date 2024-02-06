@@ -21,19 +21,20 @@
 package net.zhuruoling.notResponding.mixin;
 
 import net.minecraft.client.util.Window;
+import net.zhuruoling.notResponding.Mod;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 
-@Mixin(Window.class)
+@Mixin(value = Window.class)
 public class WindowMixin {
-    @ModifyArg(method = "setTitle",at = @At(value = "INVOKE",target = "Lorg/lwjgl/glfw/GLFW;glfwSetWindowTitle(JLjava/lang/CharSequence;)V"), index = 1)
-    CharSequence modifyTitle1(CharSequence title){
-        return title + " (Not Responding)";
+    @ModifyArg(method = "setTitle", at = @At(value = "INVOKE", target = "Lorg/lwjgl/glfw/GLFW;glfwSetWindowTitle(JLjava/lang/CharSequence;)V", remap = false), index = 1)
+    CharSequence modifyTitle1(CharSequence title) {
+        return title + " " + Mod.getNotRespondingString();
     }
 
-    @ModifyArg(method = "<init>",at = @At(value = "INVOKE",target = "Lorg/lwjgl/glfw/GLFW;glfwCreateWindow(IILjava/lang/CharSequence;JJ)J"), index = 2)
-    CharSequence modifyTitle2(CharSequence title){
-        return title + " (Not Responding)";
+    @ModifyArg(method = "<init>", at = @At(value = "INVOKE", target = "Lorg/lwjgl/glfw/GLFW;glfwCreateWindow(IILjava/lang/CharSequence;JJ)J", remap = false), index = 2)
+    CharSequence modifyTitle2(CharSequence title) {
+        return title + " " + Mod.getNotRespondingString();
     }
 }

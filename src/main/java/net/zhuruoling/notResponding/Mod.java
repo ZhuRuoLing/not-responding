@@ -22,21 +22,18 @@ package net.zhuruoling.notResponding;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
-import net.fabricmc.loader.api.metadata.ModMetadata;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import net.minecraft.text.Text;
 
 public class Mod implements ClientModInitializer {
-    public static final Logger logger = LogManager.getLogger();
-
-    public static final String MOD_ID = "not_responding";
-    public static String MOD_VERSION = "unknown";
-    public static String MOD_NAME = "unknown";
 
     @Override
     public void onInitializeClient() {
-        ModMetadata metadata = FabricLoader.getInstance().getModContainer(MOD_ID).orElseThrow(RuntimeException::new).getMetadata();
-        MOD_NAME = metadata.getName();
-        MOD_VERSION = metadata.getVersion().getFriendlyString();
+        var configDir = FabricLoader.getInstance().getConfigDir().toFile();
+        if (!configDir.exists())configDir.mkdir();
+        Setting.getInstance().load();
+    }
+
+    public static String getNotRespondingString(){
+        return Text.translatableWithFallback("not_responding.title","(Not Responding)").getString();
     }
 }

@@ -20,20 +20,25 @@
 
 package net.zhuruoling.notResponding.mixin;
 
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.GameRenderer;
-import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.gui.screen.option.AccessibilityOptionsScreen;
+import net.minecraft.client.option.GameOptions;
+import net.minecraft.client.option.SimpleOption;
 import net.zhuruoling.notResponding.Setting;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(GameRenderer.class)
-public class GameRendererMixin {
-    @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/DrawContext;draw()V", shift = At.Shift.BEFORE), locals = LocalCapture.CAPTURE_FAILHARD)
-    void inj(float tickDelta, long startTime, boolean tick, CallbackInfo ci, boolean bl, MatrixStack matrixStack, DrawContext drawContext){
-        drawContext.fill(0,0,drawContext.getScaledWindowWidth(), drawContext.getScaledWindowHeight(), Setting.getInstance().getMaskAlphaColor());
+@Mixin(AccessibilityOptionsScreen.class)
+public class OptionsScreenMixin {
+    @Inject(method = "getOptions",
+            at = @At(value = "RETURN"),
+            cancellable = true)
+    private static void inj(GameOptions gameOptions, CallbackInfoReturnable<SimpleOption<?>[]> cir){
+        var oldArray = cir.getReturnValue();
+        SimpleOption<?>[] newArray = new SimpleOption[oldArray.length+1];
+        System.arraycopy(oldArray, 0, newArray, 0, oldArray.length);
+        newArray[newArray.length-1] = Setting.getInstance().getMaskAlpha();
+        cir.setReturnValue(newArray);
     }
 }
